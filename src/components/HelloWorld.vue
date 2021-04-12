@@ -3,34 +3,20 @@
     <div
       class="Root-unsplashBackgroundImage"
       :style="{ backgroundImage: 'url(' + bgurl + ')' }"
-    ></div>
+    >
+        <div class="overlay"></div>
+      <p class="note">{{bgnote}}<br><small>{{bgcontent}}</small></p>
+    </div>
     <div class="Root-keyboardLayout">
-      <div class="KeyboardRow">
-        <div style="position: relative" v-for="(item,i) in list" :key="item.key" v-if="i<10" v-on:mouseover="hoverKey(item.key,i)">
+      <div class="KeyboardRow"  v-for="(row,r) in rowArr" :key="r">
+        <div style="position: relative" v-for="(item,i) in list" :key="item.key" v-if="i>=row.min && i<row.max" @click="gotoEvt(item.url)">
           <div draggable="true">
-            <div
-              :class="['Key isFocused',item.hoverClass]" :data-key="item.key"
-            >{{item.key}}
+            <div :class="['Key isFocused']" :data-key="item.key" :id="i">
+              <span>{{item.key}}</span>
+              <div v-if="item.url" class="delete" @click="deleteEvt(item.key,i)"></div>
+              <div v-else class="add" @click="addEvt(item.key,i)"></div>
+              <input v-if="item.edit" v-focus placeholder="https://……" class="edit" @keyup.enter="onSubmit" />
             </div>
-          </div>
-        </div>
-        
-      </div>
-      <div class="KeyboardRow">
-        <div style="position: relative" v-for="(item,i) in list" :key="item.key" v-if="i>=10&&i<19" v-on:mouseover="hoverKey(item.key,i)">
-          <div draggable="true">
-            <div
-               :class="['Key isFocused',item.hoverClass]" :data-key="item.key"
-            >{{item.key}}</div>
-          </div>
-        </div>
-      </div>
-      <div class="KeyboardRow">
-        <div style="position: relative" v-for="(item,i) in list" :key="item.key" v-if="i>=19" v-on:mouseover="hoverKey(item.key,i)">
-          <div draggable="true">
-            <div
-               :class="['Key isFocused',item.hoverClass]" :data-key="item.key"
-            >{{item.key}}</div>
           </div>
         </div>
       </div>
@@ -39,6 +25,7 @@
 </template>
 
 <script>
+import fetchJsonp from 'fetch-jsonp';
 export default {
   name: "HelloWorld",
   props: {
@@ -46,9 +33,12 @@ export default {
   },
   data: function () {
     return {
-      bgurl:
-        "https://images.unsplash.com/photo-1456428199391-a3b1cb5e93ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxMjEzN3wwfDF8cmFuZG9tfHx8fHx8fHx8MTYxNzg3MjY1Mg&ixlib=rb-1.2.1&q=80&w=1080",
-        list:[{
+      hash: '',
+      rowArr:[{min:0,max:10},{min:10,max:19},{min:19,max:30}],
+      bgurl: '',
+      bgnote: '',
+      bgcontent: '',
+      list:[{
           key:'q',
           url:'',
           icon:''
@@ -155,17 +145,171 @@ export default {
         }],
     };
   },
-  methods:{
-    hoverKey:function (key,i) {
-      console.log(key,i)
-      // this.$set(this.list[i], `hoverClass`, "isFocused")
+  created(){
+    let hash = location.hash||'';
+    console.log(hash)
+    if(hash.replace('#','')===''){
+      hash = localStorage.getItem('myzTab')||'';
+      if(hash.replace('#','')===''){
+          hash = String(Date.now());
+          localStorage.setItem('myzTab',hash)
+      }
+      location.hash = hash;
     }
+    this.hash = hash.replace('#','');
+
+    let bgurl = localStorage.getItem('myzBg');
+    if(bgurl){
+      this.bgurl = bgurl;
+    }
+
+    let listStr = localStorage.getItem(this.hash);
+    if(listStr){
+      this.list = JSON.parse(listStr);
+      console.log(this.list);
+    }
+    
+    this.getPaper();
+    this.getApi(this.hash)
+    
+  },
+  methods:{
+    gotoEvt:function (url) {
+      if(url){
+        window.open(url)
+      }
+    },
+    addEvt:function (key,i) {
+      for (let index = 0; index < this.list.length; index++) {
+        if(i===index){
+          this.$set(this.list[index], `edit`, true) 
+        }else{
+          this.$set(this.list[index], `edit`, false) 
+        }
+      }
+    },
+    onSubmit:function (e) {
+      // console.log(e)
+      let value = e.target.value;
+      let i = e.target.parentNode.id;
+      let oldVal = this.list[i];
+      oldVal.url=value;
+      oldVal.edit=false;
+      this.$set(this.list,i,oldVal)
+
+      localStorage.setItem(this.hash,JSON.stringify(this.list));
+
+      this.setApi(this.hash, this.list[i]['key'], this.list[i]['url'])
+    },
+    deleteEvt:function (key,i) {
+      this.$set(this.list[i], `url`, '')
+    },
+    setApi:function(hash,key,url){
+      console.log(hash,key,url)
+      fetch(`http://api.zhengoma.cn/?cmd=navset&hash=${hash}&key=${key}&url=${url}`, {
+        method: 'GET',
+        redirect: 'follow'
+      })
+      .then(response => response.json())
+      .then(result => console.log(result))
+      .catch(error => console.log('error', error));
+    },
+    getApi:function(hash){
+      console.log(hash)
+      fetch(`http://api.zhengoma.cn/?cmd=navget&hash=${hash}`, {
+        method: 'GET',
+        redirect: 'follow'
+      })
+      .then(response => response.json())
+      .then(result =>{
+
+        result.data && result.data.forEach(element => {
+          for (let index = 0; index < this.list.length; index++) {
+            const item = this.list[index];
+            if(item.key===element.key){
+                this.$set(this.list[index], `url`, element.url)
+            }
+          }
+        });
+      })
+      .catch(error => console.log('error', error));
+    },
+    getPaper: function(){
+      fetchJsonp("http://open.iciba.com/dsapi/",{
+        jsonpCallback:"callback"
+      }).then(res=>res.json()).then(res=>{
+         this.bgnote = res.note;
+         this.bgcontent = res.content;
+         this.bgurl = res.picture4;
+         localStorage.setItem('myzBg',this.bgurl)
+      });
+    },
   }
 };
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+.overlay{
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 10;
+		background: rgba(0, 0, 0, 0.5);
+	}
+.note{
+		color: #fff;
+		width: 90%;
+		font-weight: 300;
+		font-size: 30px;
+		position: absolute;
+		top: 20%;
+		z-index: 20;
+		font-family: 微软雅黑;	
+		padding:0 5%;		
+    line-height: 40px;
+	}
+.edit{
+  position: absolute;
+    right: -26px;
+    bottom: -32px;
+    width: 160%;
+    height: 22px;
+    background: linear-gradient(20deg, #396ffe, #33d0d8);
+    border: 0;
+    border-radius: 6px;
+    color: #fff;
+    
+}
+.edit::-webkit-input-placeholder {
+  color: #fff;
+  opacity: 0.5;
+  text-align: left;
+  padding-left: 5px;
+}
+.add{
+    display:none;
+    position: absolute;
+    right: 4px;
+    bottom: 4px;
+    width: 25%;
+    height: 25%;
+    background-size: cover;
+    background-image: url(http://image-change.test.upcdn.net/1618199491324/add.png);
+}
+.delete{
+  display:none;
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 25%;
+    height: 25%;
+    background-size: cover; 
+    background-image: url(http://image-change.test.upcdn.net/1618199491324/trash.png);
+}
+
 .Root-unsplashBackgroundImage {
   height: 100vh;
   width: 100vw;
@@ -186,7 +330,8 @@ export default {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  height: 100vh;
+  height: 60vh;
+  top: 40vh;
   position: relative;
   z-index: 2;
 }
@@ -217,12 +362,7 @@ export default {
 .Key.isDraggedOver {
   border: 2px solid #396ffe;
 }
-.Key.full {
-  opacity: 1;
-}
-.Key.empty {
-  opacity: 0.3;
-}
+ 
 .Key.empty.isDraggedOver {
   opacity: 1;
 }
@@ -257,6 +397,13 @@ export default {
   animation-name: hoverUp;
   animation-timing-function: ease-out;
   animation-duration: 0.15s;
+  
+}
+.Key.isFocused:hover .add{
+    display: block;
+}
+.Key.isFocused:hover .delete{
+    display: block;
 }
 @keyframes hoverUp {
   0% {
@@ -268,145 +415,24 @@ export default {
     box-shadow: 0 4px 4px 4px rgba(0, 0, 0, 0.25);
   }
 }
-.Key.empty:hover .Key {
-  opacity: 1;
-}
-.Key.empty:hover .Key-addButton,
-.Key.empty:hover .Key-letter {
-  opacity: 0.3;
-}
-.Key .EmojiExists {
-  opacity: 1;
-}
-.Key.full:hover .EmojiExists {
-  opacity: 0.5;
-}
-.Key.full:hover .EmojiExists:hover {
-  opacity: 1;
-}
-.Key.full:hover .EmojiDoesNotExist {
-  opacity: 0.5;
-}
-.Key.full:hover .EmojiDoesNotExist:hover {
-  opacity: 1;
-}
-.Key.full:hover .Key-deleteButton {
-  opacity: 0.5;
-}
-.Key.full:hover .Key-deleteButton:hover {
-  opacity: 1;
-}
-.Key-letter {
-  top: 0;
-  left: 0;
-}
-.Key-letter,
-.Key-letter.hover {
-  position: relative;
-  transition: all 0.2s;
-}
-.Key-letter.hover {
-  top: -30px;
-  left: 30px;
-  font-size: 20px;
-  opacity: 1;
-}
-.Key-addButton {
-  position: absolute;
-  visibility: hidden;
-}
-.Key-addButton.hover {
-  visibility: visible;
-  font-size: 55px;
-  margin-left: -7px;
-}
-.Key-deleteButton {
-  position: absolute;
-  right: 5px;
-  bottom: 8px;
-  font-size: 14px;
-  line-height: 14px;
-  width: 24px;
-  border-radius: 15px;
-  color: #fff;
-  cursor: pointer;
-  opacity: 0;
-}
-.Key-deleteButton.hover {
-  opacity: 1;
-}
-.Key-addEmojiButton {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  font-size: 24px;
-  line-height: 24px;
-  opacity: 0;
-  cursor: pointer;
-}
+ 
+ 
 .Key-favicon {
   position: absolute;
   bottom: -10px;
 }
-.Key-addUrl::-webkit-input-placeholder {
-  color: #fff;
-  opacity: 0.5;
-  text-align: center;
-}
-.Key-addUrl {
-  font-family: Ropa Sans;
-  background: linear-gradient(20deg, #396ffe, #33d0d8);
-  color: #fff;
-  text-align: left;
-  border-radius: 5px;
-  width: 150px;
-  position: absolute;
-  z-index: 10;
-  justify-content: center;
-  align-items: center;
-  top: 140px;
-  left: -15px;
-  line-height: normal;
-  border: none;
-  word-wrap: break-word;
-  padding: 8px;
-  font-size: 14px;
-}
+
 input:focus {
   outline: none;
 }
-.emoji-mart-emoji span {
-  height: 24px !important;
-  width: 24px !important;
-}
+ 
 @media (min-width: 1101px) and (max-width: 1325px) {
   .Key {
     height: 85px;
     width: 85px;
     font-size: 30px;
   }
-  .Key-addButton.hover {
-    font-size: 47px;
-    margin-left: -6px;
-  }
-  .emoji-mart-emoji span {
-    height: 21px !important;
-    width: 21px !important;
-  }
-  .Key-addUrl {
-    top: 119px;
-    left: -30px;
-  }
-  .Key-deleteButton {
-    font-size: 12px;
-  }
-  .Key-letter.hover {
-    position: relative;
-    top: -26px;
-    left: 26px;
-    transition: all 0.2s;
-    font-size: 17px;
-  }
+   
 }
 @media (max-width: 1100px) {
   .Key {
@@ -414,21 +440,7 @@ input:focus {
     width: 75px;
     font-size: 26px;
   }
-  .Key-deleteButton {
-    font-size: 10px;
-  }
-  .Key-addButton.hover {
-    font-size: 41px;
-    margin-left: -5px;
-  }
-  .emoji-mart-emoji span {
-    height: 18px !important;
-    width: 18px !important;
-  }
-  .Key-addUrl {
-    top: 105px;
-    left: -37px;
-  }
+   
   .Key-letter.hover {
     position: relative;
     top: -22px;
