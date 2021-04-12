@@ -235,7 +235,7 @@ export default {
       .catch(error => console.log('error', error));
     },
     getPaper: function(){
-      fetchJsonp("/backend/",{
+      fetchJsonp("/backend/paper/",{
         jsonpCallback:"callback"
       }).then(res=>res.json()).then(res=>{
          this.bgnote = res.note;
