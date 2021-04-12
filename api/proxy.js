@@ -5,8 +5,11 @@ module.exports = (req, res) => {
 
   // 代理目标地址
   // 这里使用 backend 主要用于区分 vercel serverless 的 api 路径
-  if (req.url.startsWith('/backend')) {
+  if (req.url.startsWith('/backend/paper/')) {
     target = 'http://open.iciba.com/dsapi/'
+  }
+  if (req.url.startsWith('/backend/mango/')) {
+    target = 'http://api.zhengoma.cn/'
   }
 
   // 创建代理对象并转发请求
