@@ -206,7 +206,7 @@ export default {
     },
     setApi:function(hash,key,url){
       console.log(hash,key,url)
-      fetch(`/mango/?cmd=navset&hash=${hash}&key=${key}&url=${url}`, {
+      fetch(`/backend/mango/?cmd=navset&hash=${hash}&key=${key}&url=${url}`, {
         method: 'GET',
         redirect: 'follow'
       })
@@ -216,7 +216,7 @@ export default {
     },
     getApi:function(hash){
       console.log(hash)
-      fetch(`/mango/?cmd=navget&hash=${hash}`, {
+      fetch(`/backend/mango/?cmd=navget&hash=${hash}`, {
         method: 'GET',
         redirect: 'follow'
       })
@@ -235,7 +235,7 @@ export default {
       .catch(error => console.log('error', error));
     },
     getPaper: function(){
-      fetchJsonp("/backend/",{
+      fetchJsonp("/backend/paper/",{
         jsonpCallback:"callback"
       }).then(res=>res.json()).then(res=>{
          this.bgnote = res.note;
