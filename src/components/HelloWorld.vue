@@ -13,6 +13,7 @@
           <div draggable="true">
             <div :class="['Key isFocused']" :data-key="item.key" :id="i">
               <span>{{item.key}}</span>
+              <img :src="item.icon" alt="" class="icon" />
               <div v-if="item.url" class="delete" @click="deleteEvt(item.key,i)"></div>
               <div v-else class="add" @click="addEvt(item.key,i)"></div>
               <input v-if="item.edit" v-focus placeholder="https://……" class="edit" @keyup.enter="onSubmit" />
@@ -147,17 +148,17 @@ export default {
   },
   created(){
     let hash = location.hash||'';
-    console.log(hash)
-    if(hash.replace('#','')===''){
+    hash = hash.replace('#','');
+    if(hash===''){
       hash = localStorage.getItem('myzTab')||'';
-      if(hash.replace('#','')===''){
+      if(hash===''){
           hash = String(Date.now());
           localStorage.setItem('myzTab',hash)
       }
-      location.hash = hash;
     }
-    this.hash = hash.replace('#','');
-
+    this.hash = hash;
+    location.hash = hash;
+    console.log(this.hash)
     let bgurl = localStorage.getItem('myzBg');
     if(bgurl){
       this.bgurl = bgurl;
@@ -170,7 +171,7 @@ export default {
     }
     
     this.getPaper();
-    this.getApi(this.hash)
+    this.getApi()
     
   },
   methods:{
@@ -199,24 +200,36 @@ export default {
 
       localStorage.setItem(this.hash,JSON.stringify(this.list));
 
-      this.setApi(this.hash, this.list[i]['key'], this.list[i]['url'])
+      this.setApi(this.list[i]['key'], this.list[i]['url'])
     },
     deleteEvt:function (key,i) {
       this.$set(this.list[i], `url`, '')
-    },
-    setApi:function(hash,key,url){
-      console.log(hash,key,url)
-      fetch(`/backend/mango/?cmd=navset&hash=${hash}&key=${key}&url=${url}`, {
+      fetch(`https://huatian.vercel.app/backend/mango/?cmd=navdelete&hash=${this.hash}&key=${key}`, {
         method: 'GET',
         redirect: 'follow'
       })
       .then(response => response.json())
-      .then(result => console.log(result))
+      .then(result => {
+        console.log(result)
+        this.getApi();
+      })
       .catch(error => console.log('error', error));
     },
-    getApi:function(hash){
-      console.log(hash)
-      fetch(`/backend/mango/?cmd=navget&hash=${hash}`, {
+    setApi:function(key,url){
+      console.log(key,url)
+      fetch(`https://huatian.vercel.app/backend/mango/?cmd=navset&hash=${this.hash}&key=${key}&url=${url}`, {
+        method: 'GET',
+        redirect: 'follow'
+      })
+      .then(response => response.json())
+      .then(result =>{
+        console.log(result)
+        this.getApi();
+      })
+      .catch(error => console.log('error', error));
+    },
+    getApi:function(){
+      fetch(`https://huatian.vercel.app/backend/mango/?cmd=navget&hash=${this.hash}`, {
         method: 'GET',
         redirect: 'follow'
       })
@@ -227,7 +240,10 @@ export default {
           for (let index = 0; index < this.list.length; index++) {
             const item = this.list[index];
             if(item.key===element.key){
+              console.log(element,element.url);
                 this.$set(this.list[index], `url`, element.url)
+                const myURL = new URL(element.url);
+                this.$set(this.list[index], `icon`, myURL.origin+'/favicon.ico')
             }
           }
         });
@@ -235,7 +251,7 @@ export default {
       .catch(error => console.log('error', error));
     },
     getPaper: function(){
-      fetchJsonp("/backend/paper/",{
+      fetchJsonp("https://huatian.vercel.app/backend/paper/",{
         jsonpCallback:"callback"
       }).then(res=>res.json()).then(res=>{
          this.bgnote = res.note;
@@ -281,6 +297,7 @@ export default {
     border: 0;
     border-radius: 6px;
     color: #fff;
+    text-indent:2em;
     
 }
 .edit::-webkit-input-placeholder {
@@ -308,6 +325,13 @@ export default {
     height: 25%;
     background-size: cover; 
     background-image: url(http://image-change.test.upcdn.net/1618199491324/trash.png);
+}
+.icon{
+    width: 26px;
+    height: 26px;
+    position: absolute;
+    left: 36%;
+    bottom: -13%;
 }
 
 .Root-unsplashBackgroundImage {
