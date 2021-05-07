@@ -13,7 +13,7 @@
           <div draggable="true">
             <div :class="['Key isFocused']" :data-key="item.key" :id="i">
               <span>{{item.key}}</span>
-              <img :src="item.icon" alt="" class="icon" />
+              <img v-if="item.icon" :src="item.icon" alt="" class="icon" />
               <div v-if="item.url" class="delete" @click="deleteEvt(item.key,i)"></div>
               <div v-else class="add" @click="addEvt(item.key,i)"></div>
               <input v-if="item.edit" v-focus placeholder="https://……" class="edit" @keyup.enter="onSubmit" />
@@ -176,9 +176,9 @@ export default {
   },
   methods:{
     gotoEvt:function (url) {
-      if(url){
-        window.open(url)
-      }
+      if(!url) return;
+      if(!url.startsWith('http')) url='http://'+url;
+      window.open(url)
     },
     addEvt:function (key,i) {
       for (let index = 0; index < this.list.length; index++) {
@@ -204,6 +204,7 @@ export default {
     },
     deleteEvt:function (key,i) {
       this.$set(this.list[i], `url`, '')
+      this.$set(this.list[i], `icon`, '')
       fetch(`https://huatian.vercel.app/backend/mango/?cmd=navdelete&hash=${this.hash}&key=${key}`, {
         method: 'GET',
         redirect: 'follow'
@@ -216,7 +217,6 @@ export default {
       .catch(error => console.log('error', error));
     },
     setApi:function(key,url){
-      console.log(key,url)
       fetch(`https://huatian.vercel.app/backend/mango/?cmd=navset&hash=${this.hash}&key=${key}&url=${url}`, {
         method: 'GET',
         redirect: 'follow'
@@ -240,10 +240,9 @@ export default {
           for (let index = 0; index < this.list.length; index++) {
             const item = this.list[index];
             if(item.key===element.key){
-              console.log(element,element.url);
+              //console.log(element,element.url);
+                this.$set(this.list[index], `icon`, element.icon)
                 this.$set(this.list[index], `url`, element.url)
-                const myURL = new URL(element.url);
-                this.$set(this.list[index], `icon`, myURL.origin+'/favicon.ico')
             }
           }
         });
