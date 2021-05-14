@@ -172,9 +172,19 @@ export default {
     
     this.getPaper();
     this.getApi()
-    
+    this.keyboardEvent();
   },
   methods:{
+    keyboardEvent:function(){
+        document.onkeydown = (event)=>{
+      　　　　var e  = event  ||  window.e;          
+      　　　　var keyCode = e.keyCode || e.which;
+            if(keyCode>=65 && keyCode<=90){
+              const item = this.list.find(i=>i.key===e.key);
+              this.gotoEvt(item.url)
+            } 
+        }
+    },
     gotoEvt:function (url) {
       if(!url) return;
       if(!url.startsWith('http')) url='http://'+url;
