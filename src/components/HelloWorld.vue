@@ -323,7 +323,7 @@ export default {
     width: 25%;
     height: 25%;
     background-size: cover;
-    background-image: url(http://image-change.test.upcdn.net/1618199491324/add.png);
+    background-image: url(https://s3.bmp.ovh/imgs/2022/03/1a0c2c8a4cbdecb3.png);
 }
 .delete{
   display:none;
@@ -333,7 +333,7 @@ export default {
     width: 25%;
     height: 25%;
     background-size: cover; 
-    background-image: url(http://image-change.test.upcdn.net/1618199491324/trash.png);
+    background-image: url(https://s3.bmp.ovh/imgs/2022/03/d37964e40c3d9b8e.png);
 }
 .icon{
     width: 26px;
